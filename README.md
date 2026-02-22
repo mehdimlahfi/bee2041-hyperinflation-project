@@ -1,5 +1,5 @@
-# The Bolivian Hyperinflation Project
+# The Dominican Rep. of Congo Hyperinflation Project
 
-This repositery contains all relevant files concerning 
+This repository contains all relevant files concerning the University of Exeter: Data Science project.
 
-**Download required CSV to contribute: https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG**
+**Raw Dataset: https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG**
