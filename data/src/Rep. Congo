@@ -85,5 +85,3 @@ print('Predicted inflation rate in 1995: ', predict_1995)
 print('Predicted inflation rate in 1996: ', predict_1996)
 plt.legend()
 plt.show()
-
-plt.show()
