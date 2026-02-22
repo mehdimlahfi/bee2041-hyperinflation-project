@@ -1,0 +1,88 @@
+#Start by importing the cleaned data set and the libraries that will be used
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+import sklearn as sk
+data = pd.read_csv("inflation_worldbank_tidy.csv")
+
+#begin by looking at when hyperinflation started in Democratic Republic of Congo
+#print titles of each column
+print(data.columns)
+#To do this we first need just the data from Bolivia
+dem_rep_congo = data[data['Country Name'] == 'Congo, Dem. Rep.']
+#Inflation is considered hyperinflation when it is over 50% a month, so we are defining hyperinflation as over 600% for a year
+congo_hyperinflation = dem_rep_congo[dem_rep_congo['inflation_annual_%'] > 600]
+print(congo_hyperinflation.shape)
+#After limiting the data to just when there is hyperinflation in Democratic Republic of Congo, we can now, ensure it is sorted in chronological order
+#and find the first and last year
+congo_hyperinflation = congo_hyperinflation.sort_values(by='year',ascending=True)
+started = congo_hyperinflation['year'].iloc[0]
+print(started)
+ended = congo_hyperinflation['year'].iloc[-1]
+print(ended)
+
+#Next we look at when hyperinflation was at its highest in Democratic Republic of Congo by sorting the data by inflation rate in descending order
+#and displaying just the first row
+congo_hyperinflation_max = congo_hyperinflation.sort_values(by='inflation_annual_%',ascending=False)
+print(congo_hyperinflation_max['inflation_annual_%'].head(1))
+
+#Next we look can create a graph to show a comparison of the inflation rate in Democratic Republic of Congo to the rest of the world
+#We use the matplotlib library for this
+#We then know hyperinflation only occures in 1984-5 so will take a 5 year period from 1988-96 to compare within
+data_range = data[(data['year'] >= 1988) & (data['year'] <= 1996)]
+#We will then take a mean of the inflation rates in each year to have a comparison data
+global_mean = data_range.groupby('year')['inflation_annual_%'].mean()
+graph_data = [global_mean.index, global_mean.values]   
+print(graph_data)
+#We also need Democratic Republic of Congo data when it is not limited to hyperinflation but is limited to 1988-1996
+congo_inflation = data[(data['Country Name'] == 'Congo, Dem. Rep.') & (data['year'] >= 1988) & (data['year'] <= 1996)]
+#add these on to a scatter graph
+plt.plot(graph_data[0], graph_data[1], color='blue', label='global mean')
+plt.plot(congo_inflation['year'], congo_inflation['inflation_annual_%'], color='red', label='Democratic Republic of Congo')
+#add labels, legend and title to graph, as well as line
+plt.legend()
+plt.xlabel('Year')
+plt.ylabel('Inflation Rate (%)')
+plt.title('Global inflation rate vs Democratic Republic of Congo\'s inflation rate')
+#plt.show()
+
+#Finally we can fit a curve to predict what the inflation rate would have been in Democratic Republic of Congo had steps not been taken to bring the inflation rate back down
+#To do this we make a curve based on the data from 1988-1994
+#First adjust the Democratic Republic of Congo date to just 1988-1994
+congo_curve = data[(data['Country Name'] == 'Congo, Dem. Rep.') & (data['year'] >= 1988) & (data['year'] <= 1994)]
+#next use the sklearn library to create a non-linear regression
+x = congo_curve['year']
+y_data = congo_curve['inflation_annual_%']
+#make data into an array so it can be plotted easily
+x = np.asarray(x)
+y_data = np.asarray(y_data)
+plt.plot(x, y_data, color='black', label='data')
+#We can see that the datapoint in 1993 is an outlier, so to create a model that more accurately reflects the upwards trend in inflation, we will remove this datapoint
+congo_curve_no_outlier = congo_curve[congo_curve['year'] != 1993]
+x = np.asarray(congo_curve_no_outlier['year'])
+y_data = np.asarray(congo_curve_no_outlier['inflation_annual_%'])
+plt.plot(x, y_data, 'o', color='black', label='data')
+#create our function. Based on the shape of our data we want a function in the form a*b**x +c so will create a function:
+#However, because x is so large, we cannot try and use it as the power without creating errors, so first we will divide it by the first year (1988)
+def curve(x, A, B, C):
+    power = x-1988
+    y = A*(B**power) + C
+    return y
+#next we will use the curve_fit function to find the parameters for our function. In this we need to flatten our x and y in order to make it one dimensional
+parameters, covariance = curve_fit(curve, x.flatten(), y_data.flatten())
+#assign variables to the parameters
+fit_A = parameters[0]
+fit_B = parameters[1]
+fit_C = parameters[2]
+print('A: ', fit_A, ' B: ', fit_B,' C: ', fit_C)
+#next plot our curve onto the graph
+fit_y = curve(x, fit_A, fit_B, fit_C)
+plt.plot(x, fit_y, color='darkorange', label='data')
+plt.show()
+#finally, we can use this model to predict the inflation rate in 1995  and 1996 had steps not been taken to bring inflation down
+predict_1995 = curve(1995, fit_A, fit_B, fit_C)
+predict_1996 = curve(1996, fit_A, fit_B, fit_C)
+print('Predicted inflation rate in 1995: ', predict_1995)
+print('Predicted inflation rate in 1996: ', predict_1996)
+plt.show()
